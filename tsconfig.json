@@ -1,0 +1,19 @@
+{
+  "version": "2.0.0",
+  "compilerOptions": {
+	  "target": "es5",
+	  "module": "commonjs",
+	  "types": ["node", "tape"],
+	  "declaration": true,
+	  "sourceMap": false,
+	  "experimentalDecorators": true,
+	  "noEmitOnError": true,
+	  "outDir": "lib",
+	  "moduleResolution": "node"
+  },
+  "files": [
+	  "src/index.ts",
+	  "src/test/lodashify.ts",
+	  "src/test/kek.ts"
+  ]
+}
