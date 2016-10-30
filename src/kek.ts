@@ -36,7 +36,6 @@ export class Kek<T extends KekModel> extends BaseKek<T> {
 		super(() => { this._atom.reportObserved() })
 
 		this._atom = new Atom
-		this._models = _models
 
 		_models.filter(Boolean).forEach(model => {
 			this.add(model)
