@@ -10,7 +10,9 @@
     "unit-test": "tape lib/test/*.js",
     "build": "tsc",
     "clean": "rm -rf lib/",
-    "clean-build": "npm run clean && npm run build"
+    "clean-build": "npm run clean && npm run build",
+	"build-example": "tsc --experimentalDecorators -t es5 example.ts",
+	"watch-example": "tsc --experimentalDecorators -t es5 example.ts -w"
   },
   "repository": {
     "type": "git",
