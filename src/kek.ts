@@ -52,11 +52,6 @@ export class Kek<T extends KekModel> extends BaseKek<T> {
 		super.remove(model)
 		return this
 	}
-
-	@observed toJSON() {
-		const self: any = this
-		return self.map(model => { model.toJSON() })
-	}
 }
 
 
