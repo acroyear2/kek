@@ -2,3 +2,4 @@ Makefile
 node_modules
 tmp
 lib
+example.js

@@ -2,3 +2,5 @@ Makefile
 tmp
 .gitignore
 src
+example.ts
+example.js
