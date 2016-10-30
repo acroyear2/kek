@@ -41,7 +41,7 @@ collection.add(3)
 
 ## mixes in lodash methods
 
-A `Kek` by default proxies to lodash4 to provide some utility methods, unless those methods are not overridden:
+A `Kek` by default proxies to lodash4 to provide some utility methods, unless those methods are overridden:
 
 ```js
 const _ = collection as any /* lodash typings are not there yet. prs are welcome */
