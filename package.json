@@ -5,6 +5,7 @@
   "main": "lib/index.js",
   "typings": "lib/index",
   "scripts": {
+    "prepublish": "npm test",
     "test": "npm run clean-build && npm run unit-test",
     "unit-test": "tape lib/test/*.js",
     "build": "tsc",
