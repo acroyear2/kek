@@ -2,7 +2,7 @@ import lodash = require("lodash")
 import {Lodashify} from "./lodashify"
 import {Atom, autorun} from "mobx"
 
-export interface KekModel { /* whatever */ }
+export interface KekModel {}
 
 export class BaseKek<T> extends Lodashify<T> {
 	_models: T[] = []
@@ -32,10 +32,10 @@ export class Kek<T extends KekModel> extends BaseKek<T> {
 		return this._models
 	}
 
-	constructor(_models: T[] = []) {
+	constructor(_models: T[] = [], onObserved?: () => void, onUnobserved?: () => void) {
 		super(() => { this._atom.reportObserved() })
 
-		this._atom = new Atom
+		this._atom = new Atom(`kek-` + kuid(), onObserved, onUnobserved)
 
 		_models.filter(Boolean).forEach(model => {
 			this.add(model)
@@ -52,7 +52,6 @@ export class Kek<T extends KekModel> extends BaseKek<T> {
 		return this
 	}
 }
-
 
 export function changed(target: any, key: any, descriptor: TypedPropertyDescriptor<any>) {
 	const sup = descriptor.set || descriptor.value
@@ -87,4 +86,8 @@ export function observed(target: any, key: any, descriptor: TypedPropertyDescrip
 	}
 
 	return descriptor
+}
+
+function kuid() {
+	return `kek-${Math.random().toString(16).split("0.")[1]}`
 }

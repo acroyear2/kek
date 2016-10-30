@@ -93,3 +93,43 @@ test("autorun proxy", t => {
 		x.add(3)
 	})
 })
+
+test("meta-events", t => {
+	let tracked = 0
+	const called = [0, 0]
+
+	function onObserved() {
+		++called[0]
+		t.equal(tracked, 0)
+		tracked = 1
+	}
+
+	function onUnobserved() {
+		++called[1]
+		t.equal(tracked, 1)
+		t.equal(called[0], 1)
+		t.equal(called[1], 1)
+		t.end()
+	}
+
+	const models = [111, 333, 555]
+
+	const x: any = new Kek(models, onObserved, onUnobserved)
+
+	const d = x.observe(r => {
+		t.equal(x.filter(d => {
+			return d < 400
+		}).length, 2)
+	})
+
+	x.observe(r => {
+		t.equal(x.filter(d => {
+			return d > 400
+		}).length, 1)
+		r.dispose()
+	})
+
+	setTimeout(() => {
+		d()
+	}, 10)
+})
