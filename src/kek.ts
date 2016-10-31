@@ -35,7 +35,7 @@ export class Kek<T extends KekModel> extends BaseKek<T> {
 	constructor(_models: T[] = [], onObserved?: () => void, onUnobserved?: () => void) {
 		super(() => { this._atom.reportObserved() })
 
-		this._atom = new Atom(`kek-` + kuid(), onObserved, onUnobserved)
+		this._atom = new Atom(kuid(), onObserved, onUnobserved)
 
 		_models.filter(Boolean).forEach(model => {
 			this.add(model)
