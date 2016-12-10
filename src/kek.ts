@@ -24,7 +24,7 @@ export class BaseKek<T> extends Lodashify<T> {
 export class Kek<T extends KekModel> extends BaseKek<T> {
 	_atom: Atom = null
 
-	observe(fn: (r) => any) {
+	observe(fn: (r) => any): any {
 		return autorun(fn)
 	}
 
