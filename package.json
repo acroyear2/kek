@@ -11,8 +11,8 @@
     "build": "tsc",
     "clean": "rm -rf lib/",
     "clean-build": "npm run clean && npm run build",
-	"build-example": "tsc --experimentalDecorators -t es5 example.ts",
-	"watch-example": "tsc --experimentalDecorators -t es5 example.ts -w"
+    "build-example": "tsc --experimentalDecorators -t es5 example.ts",
+    "watch-example": "tsc --experimentalDecorators -t es5 example.ts -w"
   },
   "repository": {
     "type": "git",
@@ -27,13 +27,13 @@
   "author": "Onur Gunduz <ogunduz@gmail.com>",
   "dependencies": {
     "lodash": "^4.16.4",
-    "mobx": "^2.6.0"
+    "mobx": "^2.7.0"
   },
   "devDependencies": {
     "@types/lodash": "^4.14.37",
     "@types/node": "^6.0.46",
     "@types/tape": "^4.2.28",
-    "tape": "^4.6.2",
-    "typescript": "^2.0.6"
+    "tape": "^4.6.3",
+    "typescript": "^2.1.4"
   }
 }
