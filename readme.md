@@ -85,6 +85,6 @@ import {Kek} from "kek"
 
 ## k.batch(fn: () => void)
 
-## const stream = k.observe((value: T[], r: kek.IDisposer) => void)
+## const stream = k.observe((value: T[], r: kek.IKekDisposer) => void)
 
 ## k.children: T[]

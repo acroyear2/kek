@@ -13,7 +13,7 @@ export type IMultiWriteStream = {
 	destroy: () => void
 }
 
-export type IDisposer = {
+export type IKekDisposer = {
 	dispose: () => void
 }
 
@@ -69,7 +69,7 @@ export class Kek<T> {
 		}
 	}
 
-	observe(fn?: (value: T[], r: IDisposer) => any): NodeJS.ReadWriteStream {
+	observe(fn?: (value: T[], r: IKekDisposer) => any): NodeJS.ReadWriteStream {
 		const tr = through.obj()
 		this._streams.push(tr)
 
