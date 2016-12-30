@@ -1,55 +1,148 @@
-import lodash = require("lodash")
-import {Lodashify} from "./lodashify"
-import {Atom, autorun} from "mobx"
+import fastjsonpatch = require("fast-json-patch")
+import mobx = require("mobx")
+import through = require("through2")
+const multi = require("multi-write-stream")
+const readonly = require("read-only-stream")
+const eos = require("end-of-stream")
 
-export interface KekModel {}
+const debug = require("debug")("kek")
 
-export class BaseKek<T> extends Lodashify<T> {
-	_models: T[] = []
-
-	add(model: T): this {
-		this._models.push(model)
-		return this
-	}
-
-	remove(model: T): this {
-		const ix = this._models.indexOf(model)
-		if (ix > -1) {
-			this._models.splice(ix, 1)
-		}
-		return this
-	}
+export type IMultiWriteStream = {
+	add: (stream: NodeJS.ReadWriteStream) => void
+	remove: (stream: NodeJS.ReadWriteStream) => void
+	destroy: () => void
 }
 
-export class Kek<T extends KekModel> extends BaseKek<T> {
-	_atom: Atom = null
+export type IDisposer = {
+	dispose: () => void
+}
 
-	observe(fn: (r) => any): any {
-		return autorun(fn)
+export class Kek<T> {
+	_atom: mobx.Atom = new mobx.Atom
+	_multiWriter: NodeJS.WritableStream & IMultiWriteStream = null
+
+	@mobx.observable _streams: NodeJS.ReadWriteStream[] = mobx.asFlat([])
+
+	_children: T[] = []
+	@mobx.observable _shadow: T[] = []
+
+	_prevChildren: T[] = null
+
+	@observed get children(): T[] {
+		return this._children
 	}
 
-	@observed get models() {
-		return this._models
-	}
-
-	constructor(_models: T[] = [], onObserved?: () => void, onUnobserved?: () => void) {
-		super(() => { this._atom.reportObserved() })
-
-		this._atom = new Atom(kuid(), onObserved, onUnobserved)
-
-		_models.filter(Boolean).forEach(model => {
-			this.add(model)
+	constructor(children: T[] = []) {
+		mobx.transaction(() => {
+			children.filter(Boolean).forEach(model => {
+				this.add(model)
+			})
 		})
 	}
 
-	@changed add(model: T) {
-		super.add(model)
+	@changed add(value: T): this {
+		this._children.push(value)
+		this._shadow.push(value)
 		return this
 	}
 
-	@changed remove(model: T) {
-		super.remove(model)
+	@changed remove(value: T): this {
+		const ix = this._children.indexOf(value)
+		if (ix > -1) {
+			this._children.splice(ix, 1)
+			this._shadow.splice(ix, 1)
+		}
 		return this
+	}
+
+	observe(fn?: (value: T[], r: IDisposer) => any): NodeJS.ReadWriteStream {
+		const tr = through.obj()
+		this._streams.push(tr)
+
+		debug("init stream #%d", this._streams.length - 1)
+
+		if (this._streams.length === 1 && !this._multiWriter) {
+			debug("init multi-writer")
+			this._multiWriter = multi.obj([], { autoDestroy: false })
+			this._prevChildren = mobx.toJSON(this._children)
+
+			mobx.when(() => {
+				const disposed = (this._streams.length === 0)
+				if (!disposed) {
+					const current = mobx.toJSON(this._children)
+					const prev = this._prevChildren
+
+					const patches = fastjsonpatch.compare(prev, current)
+
+					if (patches.length) {
+						debug("emit patch %O (streams len: %d)", patches, this._streams.length)
+						this._multiWriter.write(patches as any)
+						this._prevChildren = current
+						this._atom.reportObserved()
+					}
+				}
+				return disposed
+			}, () => {
+				process.nextTick(() => {
+					debug("dispose multi-writer (s: %s)", this._streams.length)
+					this._multiWriter.destroy()
+					this._multiWriter = null
+				})
+			})
+		}
+
+		this._multiWriter.add(tr)
+
+		let _r
+
+		const ro = readonly(tr)
+
+		eos(ro, er => {
+			const ix = this._streams.indexOf(tr)
+			if (er) {
+				debug(`stream #%d closed prematurely (er: %s)`, ix, er.message)
+			}
+
+			process.nextTick(() => {
+				const ix = this._streams.indexOf(tr)
+				if (ix !== -1) {
+					debug("dispose stream (%d) (eos)", this._streams.length)
+
+					this._streams.splice(ix, 1)
+					this._multiWriter.remove(tr)
+				}
+
+				if (typeof _r === "function") {
+					debug("dispose observer #%d (eos)", ix)
+					_r()
+				}
+			})
+		})
+
+		if (fn) {
+			_r = mobx.autorun(r => {
+				fn(this.children, {
+					dispose: () => {
+						const ix = this._streams.indexOf(tr)
+
+						debug("dispose stream (%d) (autorun)", this._streams.length)
+						if (ix !== -1) {
+							this._streams.splice(ix, 1)
+							this._multiWriter.remove(tr)
+						}
+
+						debug("dispose observer #%d (autorun)", ix)
+						r.dispose()
+					}
+				})
+			})
+		}
+
+		return ro
+	}
+
+	batch(fn: () => any): void {
+		process.nextTick(mobx.transaction.bind(null, fn))
 	}
 }
 
@@ -58,13 +151,15 @@ export function changed(target: any, key: any, descriptor: TypedPropertyDescript
 
 	const fn = function(...args) {
 		const res = sup.apply(this, args)
-		this._atom.reportChanged()
+		const self = (<Kek<any>>this)
+		debug("report changed (%s)", key)
+		self._atom.reportChanged()
 		return res
 	}
 
-	if (lodash.isFunction(descriptor.set)) {
+	if (typeof descriptor.set === "function") {
 		descriptor.set = fn
-	} else if (lodash.isFunction(descriptor.value)) {
+	} else if (typeof descriptor.value === "function") {
 		descriptor.value = fn
 	}
 
@@ -75,19 +170,17 @@ export function observed(target: any, key: any, descriptor: TypedPropertyDescrip
 	const sup = descriptor.get || descriptor.value
 
 	const fn = function() {
-		this._atom.reportObserved()
+		const self = (<Kek<any>>this)
+		debug("report observed (%s)", key)
+		self._atom.reportObserved()
 		return sup.apply(this)
 	}
 
-	if (lodash.isFunction(descriptor.get)) {
+	if (typeof descriptor.get === "function") {
 		descriptor.get = fn
-	} else if (lodash.isFunction(descriptor.value)) {
+	} else if (typeof descriptor.value === "function") {
 		descriptor.value = fn
 	}
 
 	return descriptor
-}
-
-function kuid() {
-	return `kek-${Math.random().toString(16).split("0.")[1]}`
 }
