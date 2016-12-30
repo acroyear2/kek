@@ -1,7 +1,7 @@
 {
   "name": "kek",
   "version": "0.1.5",
-  "description": "observable set that produces rows of rfc6902 patches",
+  "description": "observable set that produces rows of rfc6902 patches as readable stream",
   "main": "lib/index.js",
   "typings": "lib/index",
   "scripts": {
@@ -41,6 +41,7 @@
     "debug": "^2.6.0",
     "tap-diff": "^0.1.1",
     "tape": "^4.6.3",
+    "tape-watch": "^2.2.4",
     "typescript": "^2.1.4"
   }
 }
