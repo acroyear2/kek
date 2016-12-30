@@ -9,6 +9,7 @@
     "test": "npm run build && tape lib/test/*.js | tap-diff",
     "test-watch": "npm run build && concurrently --raw \"npm run watch\" \"tape-watch lib/test/*.js -p tap-diff\" --kill-others",
     "build": "npm run clean && tsc",
+    "prepublish": "npm run test && npm run build",
     "watch": "npm run clean && tsc --watch"
   },
   "repository": {
