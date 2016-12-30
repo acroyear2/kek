@@ -55,6 +55,20 @@ export class Kek<T> {
 		return this
 	}
 
+	_flush() {
+		const current = mobx.toJSON(this.children)
+		const prev = this._prevChildren
+
+		const patches = fastjsonpatch.compare(prev, current)
+
+		if (patches.length) {
+			debug("emit patch %O (streams len: %d)", patches, this._streams.length)
+			this._multiWriter.write(patches as any)
+			this._prevChildren = current
+			this._atom.reportObserved()
+		}
+	}
+
 	observe(fn?: (value: T[], r: IDisposer) => any): NodeJS.ReadWriteStream {
 		const tr = through.obj()
 		this._streams.push(tr)
@@ -68,18 +82,10 @@ export class Kek<T> {
 
 			mobx.when(() => {
 				const disposed = (this._streams.length === 0)
+				debug("disposed", disposed)
 				if (!disposed) {
-					const current = mobx.toJSON(this._children)
-					const prev = this._prevChildren
-
-					const patches = fastjsonpatch.compare(prev, current)
-
-					if (patches.length) {
-						debug("emit patch %O (streams len: %d)", patches, this._streams.length)
-						this._multiWriter.write(patches as any)
-						this._prevChildren = current
-						this._atom.reportObserved()
-					}
+					debug("calculate changes")
+					this._flush()
 				}
 				return disposed
 			}, () => {
@@ -123,6 +129,8 @@ export class Kek<T> {
 			_r = mobx.autorun(r => {
 				fn(this.children, {
 					dispose: () => {
+						this._flush()
+
 						const ix = this._streams.indexOf(tr)
 
 						debug("dispose stream (%d) (autorun)", this._streams.length)
@@ -142,7 +150,7 @@ export class Kek<T> {
 	}
 
 	batch(fn: () => any): void {
-		process.nextTick(mobx.transaction.bind(null, fn))
+		return void mobx.transaction(fn)
 	}
 }
 
@@ -152,7 +160,7 @@ export function changed(target: any, key: any, descriptor: TypedPropertyDescript
 	const fn = function(...args) {
 		const res = sup.apply(this, args)
 		const self = (<Kek<any>>this)
-		debug("report changed (%s)", key)
+		//debug("report changed (%s)", key)
 		self._atom.reportChanged()
 		return res
 	}
@@ -171,7 +179,7 @@ export function observed(target: any, key: any, descriptor: TypedPropertyDescrip
 
 	const fn = function() {
 		const self = (<Kek<any>>this)
-		debug("report observed (%s)", key)
+		//debug("report observed (%s)", key)
 		self._atom.reportObserved()
 		return sup.apply(this)
 	}
