@@ -452,3 +452,65 @@ test("array ops", t=> {
         s.emit("end")
     })
 })
+
+test("apply patches", t => {
+    let x = { name: "bar" }
+
+    const m1 = new Kek<FooKek>([ x ])
+    const m2 = new Kek<FooKek>([ { name: "foo" } ])
+
+    const expectedPatches = [
+        [ { op: "replace", path: "/0/name", value: "baz" } ],
+        [ { op: "replace", path: "/0/name", value: "qux" } ]
+    ]
+
+    const expectedValues1 = [
+        [ { name: "bar" } ],
+        [ { name: "baz" } ],
+        [ { name: "qux" } ]
+    ]
+
+    const expectedValues2 = [
+        [ { name: "foo" } ],
+        [ { name: "baz" } ],
+        [ { name: "qux" } ]
+    ]
+
+    t.timeoutAfter(500)
+
+    let i = -1
+    const s1 = m1.observe((value, r) => {
+        t.deepEqual(mobx.toJSON(value), expectedValues1[++i])
+        if (i === expectedValues1.length - 1) {
+            t.ok(1)
+            r.dispose()
+        }
+    })
+
+    let k = -1
+    const s2 = m2.observe((value, r) => {
+        t.deepEqual(mobx.toJSON(value), expectedValues2[++k])
+    })
+
+    let j = -1
+    s1.on("data", data => {
+        t.deepEqual(data, expectedPatches[++j])
+        m2.applyPatches(data)
+    })
+
+    let y = -1
+    s2.on("data", data => {
+        t.deepEqual(data, expectedPatches[++y])
+        if (y === 1) {
+            t.ok(1)
+            t.notEqual(m1.children, m2.children)
+            t.deepEqual(m1.children, m2.children)
+            s2.emit("end")
+            t.end()
+        }
+    })
+
+    expectedPatches.forEach(d => {
+        m1.applyPatches(d)
+    })
+})

@@ -79,12 +79,16 @@ import {Kek} from "kek"
 
 ## const k = new kek.Kek<T>(models?: T[])
 
-## k.add(model: T)
-
-## k.remove(model: T)
-
-## k.batch(fn: () => void)
-
-## const stream = k.observe((value: T[], r: kek.IKekDisposer) => void)
-
 ## k.children: T[]
+
+## k.add(model: T): this
+
+## k.remove(model: T): this
+
+## k.batch(fn: () => void): this
+
+## k.applyPatches(patches: kek.IPatch[], validate: boolean = false)
+
+## const stream = k.observe((value: T[], r: kek.IDisposer) => void)
+
+## stream.on("data", (patches: kek.IPatch[]) => void)

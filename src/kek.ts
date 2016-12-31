@@ -4,7 +4,6 @@ import through = require("through2")
 const multi = require("multi-write-stream")
 const readonly = require("read-only-stream")
 const eos = require("end-of-stream")
-
 const debug = require("debug")("kek")
 
 export type IMultiWriteStream = {
@@ -13,8 +12,15 @@ export type IMultiWriteStream = {
 	destroy: () => void
 }
 
-export type IKekDisposer = {
+export type IDisposer = {
 	dispose: () => void
+}
+
+export type IPatch = {
+	op: string
+	path: string
+	value?: any
+	from?: string
 }
 
 export class Kek<T> {
@@ -69,7 +75,7 @@ export class Kek<T> {
 		}
 	}
 
-	observe(fn?: (value: T[], r: IKekDisposer) => any): NodeJS.ReadWriteStream {
+	observe(fn?: (value: T[], r: IDisposer) => any): NodeJS.ReadWriteStream {
 		const tr = through.obj()
 		this._streams.push(tr)
 
@@ -82,7 +88,6 @@ export class Kek<T> {
 
 			mobx.when(() => {
 				const disposed = (this._streams.length === 0)
-				debug("disposed", disposed)
 				if (!disposed) {
 					debug("calculate changes")
 					this._flush()
@@ -149,8 +154,17 @@ export class Kek<T> {
 		return ro
 	}
 
-	batch(fn: () => any): void {
-		return void mobx.transaction(fn)
+	applyPatches(patches: IPatch[], validate: boolean = false): this {
+		this.batch(() => {
+			debug("apply patches %O (validate: %s)", patches, validate)
+			fastjsonpatch.apply(this._shadow, patches, validate)
+		})
+		return this
+	}
+
+	batch(fn: () => any): this {
+		mobx.transaction(fn)
+		return this
 	}
 }
 
