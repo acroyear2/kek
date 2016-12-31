@@ -1,6 +1,6 @@
 {
   "name": "kek",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "observable set that produces rows of rfc6902 patches as readable stream",
   "main": "lib/index.js",
   "typings": "lib/index",
