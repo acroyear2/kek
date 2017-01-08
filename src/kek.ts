@@ -79,23 +79,19 @@ export class Kek<T> {
 		const tr = through.obj()
 		this._streams.push(tr)
 
-		debug("init stream #%d", this._streams.length - 1)
-
 		if (this._streams.length === 1 && !this._multiWriter) {
-			debug("init multi-writer")
 			this._multiWriter = multi.obj([], { autoDestroy: false })
 			this._prevChildren = mobx.toJSON(this._children)
 
 			mobx.when(() => {
 				const disposed = (this._streams.length === 0)
 				if (!disposed) {
-					debug("calculate changes")
 					this._flush()
 				}
 				return disposed
 			}, () => {
 				process.nextTick(() => {
-					debug("dispose multi-writer (s: %s)", this._streams.length)
+					debug("dispose writer (s: %s)", this._streams.length)
 					this._multiWriter.destroy()
 					this._multiWriter = null
 				})
@@ -111,7 +107,7 @@ export class Kek<T> {
 		eos(ro, er => {
 			const ix = this._streams.indexOf(tr)
 			if (er) {
-				debug(`stream #%d closed prematurely (er: %s)`, ix, er.message)
+				return void debug(`stream #%d closed prematurely (er: %s)`, ix, er.message)
 			}
 
 			process.nextTick(() => {
