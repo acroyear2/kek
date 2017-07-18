@@ -5,6 +5,8 @@ observable set (using [mobx](https://github.com/mobxjs/mobx)) that produces rows
 [![Build Status](https://travis-ci.org/tetsuo/kek.svg?branch=master)](http://travis-ci.org/tetsuo/kek)
 [![NPM version](https://badge.fury.io/js/kek.svg)](http://badge.fury.io/js/kek)
 
+**Deprecated: [mobx-state-tree](https://github.com/mobxjs/mobx-state-tree) has now built-in JSON-patch support.**
+
 # example
 
 ```js
